@@ -1,10 +1,10 @@
 {
 	"team_data":
 	{
-		"name": "YourTeamNameHere"
+		"name": "FarmersOfTheNorth"
 	},
-    "training_parms": {
-		"method": "YourMethodHere",
+    "training_params": {
+		"method": "MeanImageInpaint",
 		"dummy_value": 1000
     },
     "dirs": {

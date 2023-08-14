@@ -24,9 +24,10 @@ def sanitize_string(string_in):
 def submit_inpainting(settings):
     output_data_dir = settings["dirs"]["output_data_dir"]
     data_set = settings["data_set"]
-    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}")
+    method = settings["training_params"]["method"]
+    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}_{method}")
     team_name = settings["team_data"]["name"]
-    method_name = settings["training_parms"]["method"]
+    method_name = settings["training_params"]["method"]
     server_name = settings["challenge_server"]["address"]
     submission_dir = os.path.join(output_data_dir, "submissions")
     pathlib.Path(submission_dir).mkdir(parents=True, exist_ok=True)
