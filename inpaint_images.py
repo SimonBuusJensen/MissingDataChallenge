@@ -8,7 +8,9 @@ from inpaint_tools import read_file_list
 from tqdm import tqdm
 
 
-def inpaint_one_image(in_image, mask_image, avg_image):
+
+
+def inpaint_one_image_meanimage(in_image, mask_image, avg_image):
     mask_image = np.squeeze(mask_image)
     inpainted_mask = np.copy(avg_image)
     inpainted_mask[mask_image == 0] = 0
@@ -16,15 +18,39 @@ def inpaint_one_image(in_image, mask_image, avg_image):
     inpaint_image = inpainted_mask + in_image
     return inpaint_image
 
+def inpaint_one_image_meanimagebutbetter(in_image, mask_image, avg_image, *args, **kwargs):
+    mask_image = np.squeeze(mask_image)
+
+    m = np.mean(in_image[mask_image == 0], axis=0)
+
+    in_image[mask_image == 255] = m
+
+    # center the avg image around 0
+    avg_image = avg_image - np.mean(avg_image, axis=0)
+    avg_image = avg_image + m
+    # clip the avg image to 0-255
+    avg_image = np.clip(avg_image, 0, 255)
+    in_image[mask_image == 255] = avg_image[mask_image == 255]
+
+    return in_image.astype(np.uint8)
+
+inpaint_func_dict = {
+    "MeanImageInpaint": inpaint_one_image_meanimage,
+    "MeanImageButBetter": inpaint_one_image_meanimagebutbetter
+}
+
 
 def inpaint_images(settings):
     input_data_dir = settings["dirs"]["input_data_dir"]
     output_data_dir = settings["dirs"]["output_data_dir"]
     data_set = settings["data_set"]
     model_dir = os.path.join(output_data_dir, "trained_model")
+    method = settings["training_params"]["method"]
 
-    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}")
+    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}_{method}")
     pathlib.Path(inpainted_result_dir).mkdir(parents=True, exist_ok=True)
+
+    inpaint_func = inpaint_func_dict[method]
 
     print(f"InPainting {data_set} and placing results in {inpainted_result_dir} with model from {model_dir}")
 
@@ -46,7 +72,7 @@ def inpaint_images(settings):
         im_masked = io.imread(in_image_name)
         im_mask = io.imread(in_mask_name)
 
-        inpainted_image = inpaint_one_image(im_masked, im_mask, avg_img)
+        inpainted_image = inpaint_func(im_masked, im_mask, avg_img)
         io.imsave(out_image_name, inpainted_image)
 
 

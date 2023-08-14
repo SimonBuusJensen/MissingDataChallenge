@@ -22,7 +22,8 @@ def evaluate_inpainting(settings):
     input_data_dir = settings["dirs"]["input_data_dir"]
     output_data_dir = settings["dirs"]["output_data_dir"]
     data_set = settings["data_set"]
-    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}")
+    method = settings["training_params"]["method"]
+    inpainted_result_dir = os.path.join(output_data_dir, f"inpainted_{data_set}_{method}")
 
     result_dir = os.path.join(output_data_dir, "evaluations")
     pathlib.Path(result_dir).mkdir(parents=True, exist_ok=True)
