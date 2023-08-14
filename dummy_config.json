@@ -10,8 +10,5 @@
     "dirs": {
             "input_data_dir": "./MissingDataOpenData/",
 			"output_data_dir": "./results/"
-	},
-	"challenge_server": {
-		"address": "http://fungi.compute.dtu.dk:8080"
 	}
 }
