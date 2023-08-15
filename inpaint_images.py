@@ -34,9 +34,58 @@ def inpaint_one_image_meanimagebutbetter(in_image, mask_image, avg_image, *args,
 
     return in_image.astype(np.uint8)
 
+def inpaint_one_image_patches(in_image, mask_image, avg_image):
+    mask_image = np.copy(np.squeeze(mask_image))
+    inpainted_mask = np.copy(in_image)
+
+    # get list of masked indices
+    mask_indices = np.argwhere(mask_image == 255)
+    # randomize the list
+    np.random.shuffle(mask_indices)
+
+    # iterate over mask indices
+    #while np.sum(mask_image) > 0:
+        #print(np.sum(mask_image))
+    for i, j in mask_indices:
+            if mask_image[i, j] == 255:
+                # take a 20x20 patch around the pixel
+                for patch_size in range(5,100):
+                    #print(patch_size)
+                    patch = inpainted_mask[max(0, i-patch_size):min(in_image.shape[0], i+patch_size),
+                                    max(0, j-patch_size):min(in_image.shape[1], j+patch_size), :]
+                    # select non-masked pixels
+                    patch = patch[mask_image[max(0, i-patch_size):min(in_image.shape[0], i+patch_size),
+                                                max(0, j-patch_size):min(in_image.shape[1], j+patch_size)] == 0]
+                    if not len(patch):
+                        continue
+
+                    inpainted_mask[i, j] = patch.mean(axis=0)
+                    mask_image[i, j] = 0
+                    break
+                    
+            
+    return inpainted_mask
+
+def inpaint_one_image_patches_avg(in_image, mask_image, avg_image):
+    inpainted = inpaint_one_image_patches(in_image, mask_image, None)
+
+    # center the avg image around 0
+    
+    avg_image = avg_image - np.mean(avg_image, axis=0)
+    avg_image = avg_image*2
+    avg_image = avg_image + inpainted
+    # clip the avg image to 0-255
+    avg_image = np.clip(avg_image, 0, 255)
+    inpainted[mask_image == 255] = avg_image[mask_image == 255]
+
+    return inpainted.astype(np.uint8)
+
+
 inpaint_func_dict = {
     "MeanImageInpaint": inpaint_one_image_meanimage,
-    "MeanImageButBetter": inpaint_one_image_meanimagebutbetter
+    "MeanImageButBetter": inpaint_one_image_meanimagebutbetter,
+    "PatchInpaint": inpaint_one_image_patches,
+    "PatchInpaintAvg": inpaint_one_image_patches_avg,
 }
 
 
