@@ -49,7 +49,7 @@ def inpaint_one_image_patches(in_image, mask_image, avg_image):
     for i, j in mask_indices:
             if mask_image[i, j] == 255:
                 # take a 20x20 patch around the pixel
-                for patch_size in range(5,100):
+                for patch_size in range(10,100):
                     #print(patch_size)
                     patch = inpainted_mask[max(0, i-patch_size):min(in_image.shape[0], i+patch_size),
                                     max(0, j-patch_size):min(in_image.shape[1], j+patch_size), :]
@@ -115,10 +115,13 @@ def inpaint_one_image_ynet(in_image, mask_image, avg_image):
 
     output = output[0].detach().cpu().numpy().transpose(1, 2, 0)
 
+    result = masked_imgs[0].detach().cpu().numpy().transpose(1, 2, 0)
+    result[mask_image == 255] = output[mask_image == 255]
+
     # turn to 0-255
-    output = output*255
-    output = output.astype(np.uint8)
-    return output
+    result = result * 255
+    result = result.astype(np.uint8)
+    return result
 
 inpaint_func_dict = {
     "MeanImageInpaint": inpaint_one_image_meanimage,
