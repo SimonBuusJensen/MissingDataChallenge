@@ -21,6 +21,8 @@ for filename in os.listdir(mask_dir):
 
     image_fn = f"{mask_dir}/{filename}"
 
+    print("Convert white pixels to transparent in", image_fn)
+
     img = Image.open(image_fn)
 
     # Convert white pixels to transparent
