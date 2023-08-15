@@ -15,7 +15,7 @@ os.makedirs(output_dir_name, exist_ok=True)
 
 # Loop through all files in the directory
 if __name__ == "__main__":
-    for filename in os.listdir(dir_name):
+    for filename in os.listdir(input_dir_name):
         if filename.endswith(".jpg"):
             file_name = filename.split(".")[0]
             
