@@ -62,7 +62,6 @@ def inpaint_one_image_patches(in_image, mask_image, avg_image):
                     inpainted_mask[i, j] = patch.mean(axis=0)
                     mask_image[i, j] = 0
                     break
-                    
             
     return inpainted_mask
 
@@ -80,12 +79,53 @@ def inpaint_one_image_patches_avg(in_image, mask_image, avg_image):
 
     return inpainted.astype(np.uint8)
 
+def inpaint_one_image_ynet(in_image, mask_image, avg_image):
+    import torch
+    from unet_test_2 import UNet
+    from torchvision import transforms
+
+    transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model_path = "results/trained_model/weighed_model_3.ckpt"
+    model = UNet().to(device)
+    
+    tensor_image = torch.tensor(avg_image/255, dtype=torch.float32).permute(2, 0, 1)
+
+    # Load the pre-trained weights into the model
+    model.load_state_dict(torch.load(model_path))
+    model = model.to(device)
+    model.eval()
+
+    masked_imgs = transform(in_image).unsqueeze(0)
+    masks = transform(mask_image).unsqueeze(0)
+
+    batch_size = masked_imgs.shape[0]
+    tensor_image_batch = tensor_image.repeat(batch_size, 1, 1, 1)
+    expanded_mask = masks.expand_as(masked_imgs)
+    masked_imgs[expanded_mask == 1] = tensor_image_batch[expanded_mask == 1]
+
+    masked_imgs, masks = masked_imgs.to(device), masks.to(device)
+
+    with torch.no_grad():
+        output = model(masked_imgs, masks)
+
+    output = output[0].detach().cpu().numpy().transpose(1, 2, 0)
+
+    # turn to 0-255
+    output = output*255
+    output = output.astype(np.uint8)
+    return output
 
 inpaint_func_dict = {
     "MeanImageInpaint": inpaint_one_image_meanimage,
     "MeanImageButBetter": inpaint_one_image_meanimagebutbetter,
     "PatchInpaint": inpaint_one_image_patches,
     "PatchInpaintAvg": inpaint_one_image_patches_avg,
+    "YNet": inpaint_one_image_ynet
 }
 
 
