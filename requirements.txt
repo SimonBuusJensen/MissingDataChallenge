@@ -14,3 +14,8 @@ scipy
 tifffile
 tqdm
 urllib3
+torch
+torchvision
+matplotlib
+opencv-python
+pytorch-msssim

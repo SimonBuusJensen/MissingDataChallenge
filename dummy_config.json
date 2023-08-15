@@ -4,7 +4,7 @@
 		"name": "FarmersOfTheNorth"
 	},
     "training_params": {
-		"method": "PatchInpaint",
+		"method": "MeanImageInpaint",
 		"dummy_value": 1000
     },
     "dirs": {
