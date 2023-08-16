@@ -79,9 +79,47 @@ def inpaint_one_image_patches_avg(in_image, mask_image, avg_image):
 
     return inpainted.astype(np.uint8)
 
+def inpaint_one_image_symmetry(in_image, mask_img, avg_image):
+    # create mask for left side
+
+    
+    tf_mask = np.copy(mask_img)
+
+    # create a mask selecting the left side
+    left_mask = np.zeros_like(mask_img)
+    left_mask[:, :in_image.shape[1]//2] = 1
+    # create a mask selecting the right side
+    right_mask = np.zeros_like(mask_img)
+    right_mask[:, in_image.shape[1]//2:] = 1
+
+    flipped = np.flip(in_image, axis=1)
+    mask_flipped = np.flip(mask_img, axis=1)
+
+    
+    inpainted = np.copy(in_image)
+    # figure out which side has more masked pixels
+    left_masked = np.sum(left_mask)
+    right_masked = np.sum(right_mask)
+    # flip the template and fill in the masked pixels
+    if left_masked > right_masked:
+        side_mask = right_mask
+    else:
+        side_mask = left_mask
+    
+    idx = np.nonzero(np.logical_and(side_mask == 1, mask_img == 255))
+    #print(len(idx))
+    inpainted[idx] = flipped[idx]
+    tf_mask[idx] = mask_flipped[idx]
+
+    patch_inpainted = inpaint_one_image_patches(inpainted, tf_mask, avg_image=None)
+
+    inpainted[tf_mask == 255] = patch_inpainted[tf_mask == 255]
+    
+    return inpainted
+
 def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     import torch
-    from unet_test_2 import UNet
+    from unet_test_clean import UNet
     from torchvision import transforms
 
     transform = transforms.Compose([
@@ -90,7 +128,7 @@ def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model_path = "results/trained_model/weighed_model_3.ckpt"
+    model_path = "results/trained_model/weighed_model_ssim.ckpt"
     model = UNet().to(device)
     
     tensor_image = torch.tensor(avg_image/255, dtype=torch.float32).permute(2, 0, 1)
@@ -123,12 +161,31 @@ def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     result = result.astype(np.uint8)
     return result
 
+def inpaint_one_image_lama(in_image, mask_image, *args):
+    from lama_cleaner.model.lama import LaMa
+    import torch
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    lama = LaMa(device)
+    from lama_cleaner.schema import Config
+    config=Config(ldm_steps=25, hd_strategy="original", hd_strategy_crop_margin=100, hd_strategy_crop_trigger_size=0, hd_strategy_resize_limit=1)
+
+    res = lama(in_image,mask_image,config).astype(np.uint8)
+    # swap bgr to rgb
+    res = res[:, :, ::-1]
+    
+    inpainted = np.copy(in_image)
+    inpainted[mask_image == 255] = res[mask_image == 255]
+    return inpainted
+
 inpaint_func_dict = {
     "MeanImageInpaint": inpaint_one_image_meanimage,
     "MeanImageButBetter": inpaint_one_image_meanimagebutbetter,
     "PatchInpaint": inpaint_one_image_patches,
     "PatchInpaintAvg": inpaint_one_image_patches_avg,
-    "YNet": inpaint_one_image_ynet
+    "YNet": inpaint_one_image_ynet,
+    "WonkyCats": inpaint_one_image_symmetry,
+    "PirateCats": inpaint_one_image_lama
 }
 
 
