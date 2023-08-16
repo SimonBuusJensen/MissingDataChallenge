@@ -119,7 +119,7 @@ def inpaint_one_image_symmetry(in_image, mask_img, avg_image):
 
 def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     import torch
-    from unet_test_clean import UNet
+    from unet_test_raw import UNet
     from torchvision import transforms
 
     transform = transforms.Compose([
@@ -128,7 +128,7 @@ def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model_path = "results/trained_model/weighed_model_ssim.ckpt"
+    model_path = "results/trained_model/raw_unet_2.ckpt"
     model = UNet().to(device)
     
     tensor_image = torch.tensor(avg_image/255, dtype=torch.float32).permute(2, 0, 1)
@@ -185,7 +185,7 @@ inpaint_func_dict = {
     "PatchInpaintAvg": inpaint_one_image_patches_avg,
     "YNet": inpaint_one_image_ynet,
     "WonkyCats": inpaint_one_image_symmetry,
-    "PirateCats": inpaint_one_image_lama
+    "PirateCats": inpaint_one_image_lama,
 }
 
 
