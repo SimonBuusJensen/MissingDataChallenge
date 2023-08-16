@@ -127,3 +127,5 @@ __MACOSX/
 Inspiration/*
 *.zip
 *movie*
+
+*.ipynb
