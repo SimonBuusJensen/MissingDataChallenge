@@ -178,6 +178,60 @@ def inpaint_one_image_lama(in_image, mask_image, *args):
     inpainted[mask_image == 255] = res[mask_image == 255]
     return inpainted
 
+def inpaint_one_image_dalle(in_image, mask_image, *args):
+    import openai
+    import dotenv
+    from PIL import Image
+
+    assert os.path.exists(".env"), "Create an .env file with your OpenAI key (OPENAIKEY=...)"
+    dotenv.load_dotenv()
+    openai.api_key = dotenv.get_key(".env", "OPENAIKEY")
+
+    # Convert white pixels to transparent in mask_image
+    mask_image = Image.fromarray(mask_image)
+    mask_image = mask_image.convert("RGBA")
+    mask_image_rgba = mask_image.getdata()
+
+    new_mask_image_rgba = []
+    for channel in mask_image_rgba:
+        if channel[0] == 255 and channel[1] == 255 and channel[2] == 255:
+            new_mask_image_rgba.append((255, 255, 255, 0))
+        else:
+            new_mask_image_rgba.append(channel)
+
+    mask_image.putdata(new_mask_image_rgba)
+    in_image = Image.fromarray(in_image)
+
+    # save PIL images to disk because of stupid OPENAI API...
+    mask_image.save("results/mask_image_tmp.png")
+    in_image.save("results/in_image_tmp.png")
+    
+    response = openai.Image.create_edit(
+        image=open("results/in_image_tmp.png", "rb"),
+        mask=open("results/mask_image_tmp.png", "rb"),
+        prompt="A cat",
+        n=1,
+        size="512x512"
+    )
+
+    # Delete the temporary files
+    os.remove("results/mask_image_tmp.png")
+    os.remove("results/in_image_tmp.png")
+
+    inpainted_image_url = response['data'][0]['url']
+    
+    # Download the image
+    import requests
+    from io import BytesIO
+    response = requests.get(inpainted_image_url)
+    inpainted = Image.open(BytesIO(response.content))
+
+    # Resize to 360x360
+    inpainted = inpainted.resize((360, 360), Image.LANCZOS)
+    inpainted = np.array(inpainted)
+    return inpainted
+
+
 inpaint_func_dict = {
     "MeanImageInpaint": inpaint_one_image_meanimage,
     "MeanImageButBetter": inpaint_one_image_meanimagebutbetter,
@@ -186,6 +240,7 @@ inpaint_func_dict = {
     "YNet": inpaint_one_image_ynet,
     "WonkyCats": inpaint_one_image_symmetry,
     "PirateCats": inpaint_one_image_lama,
+    "DallE2": inpaint_one_image_dalle
 }
 
 
