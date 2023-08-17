@@ -43,41 +43,43 @@ class UNet(nn.Module):
         self.dec1 = nn.Sequential(
             nn.Conv2d(512, 256, kernel_size=3, padding=1),
             InstanceNorm2d(256),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(256, 256, kernel_size=3, padding=1),
             InstanceNorm2d(256),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.dec2 = nn.Sequential(
             nn.Conv2d(256, 128, kernel_size=3, padding=1),
             InstanceNorm2d(128),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(128, 128, kernel_size=3, padding=1),
             InstanceNorm2d(128),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.up3 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
         self.dec3 = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=3, padding=1),
             InstanceNorm2d(64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             InstanceNorm2d(64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.up4 = nn.ConvTranspose2d(64, 64, kernel_size=2, stride=2)
         self.dec4 = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=3, padding=1),
             InstanceNorm2d(64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             InstanceNorm2d(64),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
 
         self.final = nn.Conv2d(64, 3, kernel_size=1) # Assuming the input image is RGB
+
+        self.final_act = nn.Sigmoid()
 
     def forward(self, x, mask):
         # Combine mask and image as input
@@ -113,9 +115,13 @@ class UNet(nn.Module):
         x = self.up4(x)
         x = self.dec4(torch.cat([x, x1], dim=1))
 
+        #print(x.shape)
+
         x = self.upsample_to_original(x)
         # Final layer
         x = self.final(x)
+
+        x = self.final_act(x)
 
         return x
 # Instantiate the model
