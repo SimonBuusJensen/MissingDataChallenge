@@ -117,6 +117,54 @@ def inpaint_one_image_symmetry(in_image, mask_img, avg_image):
     
     return inpainted
 
+def inpaint_one_image_nonet(in_image, mask_image, avg_image):
+    import torch
+    from unet_test_raw import UNet
+    from torchvision import transforms
+
+    transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    model_path = "MissingDataOpenData/weighed_model_3.ckpt"
+    model = UNet().to(device)
+    
+    #tensor_image = torch.tensor(avg_image/255, dtype=torch.float32).permute(2, 0, 1)
+    
+
+    # Load the pre-trained weights into the model
+    model.load_state_dict(torch.load(model_path))
+    model = model.to(device)
+    model.eval()
+
+    masked_imgs = transform(in_image).unsqueeze(0)
+    masks = transform(mask_image).unsqueeze(0)
+
+    tensor_image = torch.randn_like(masked_imgs)
+
+    batch_size = masked_imgs.shape[0]
+    #tensor_image_batch = tensor_image.repeat(batch_size, 1, 1, 1)
+    expanded_mask = masks.expand_as(masked_imgs)
+    masked_imgs[expanded_mask == 1] = tensor_image[expanded_mask == 1]
+
+    masked_imgs, masks = masked_imgs.to(device), masks.to(device)
+
+    with torch.no_grad():
+        output = model(masked_imgs, masks)
+
+    output = output[0].detach().cpu().numpy().transpose(1, 2, 0)
+
+    result = masked_imgs[0].detach().cpu().numpy().transpose(1, 2, 0)
+    #result[mask_image == 255] = output[mask_image == 255]
+    result = output
+
+    # turn to 0-255
+    result = result * 255
+    result = result.astype(np.uint8)
+    return result
+
 def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     import torch
     from unet_test_raw import UNet
@@ -154,7 +202,8 @@ def inpaint_one_image_ynet(in_image, mask_image, avg_image):
     output = output[0].detach().cpu().numpy().transpose(1, 2, 0)
 
     result = masked_imgs[0].detach().cpu().numpy().transpose(1, 2, 0)
-    result[mask_image == 255] = output[mask_image == 255]
+    #result[mask_image == 255] = output[mask_image == 255]
+    result = output
 
     # turn to 0-255
     result = result * 255
@@ -186,6 +235,7 @@ inpaint_func_dict = {
     "YNet": inpaint_one_image_ynet,
     "WonkyCats": inpaint_one_image_symmetry,
     "PirateCats": inpaint_one_image_lama,
+    "NoNet": inpaint_one_image_nonet
 }
 
 
